@@ -44,6 +44,15 @@ func main() {
 	}
 
 	fmt.Println("✅ Репозиторий успешно клонирован в", config.ClonePath)
+
+	fmt.Printf("📦 Архивируем %s...\n", config.ClonePath)
+
+	archiveName := "archive.zip"
+	if err := createArchive(config.ClonePath, archiveName); err != nil {
+		log.Fatal("Ошибка архивации:", err)
+	}
+
+	fmt.Println("✅ Архив успешно создан:", archiveName)
 }
 
 func cloneRepository(config CloneConfig) error {

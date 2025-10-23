@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 )
 
-func main() {
+func migrateArch() {
 	if len(os.Args) < 5 {
 		fmt.Println("Использование: migrate_to_gitlab.exe <gitlab_url> <token> <project_id> <archive_path>")
 		fmt.Println("Пример: migrate_to_gitlab.exe http://localhost:8080 glpat-token123 15 myrepo_backup.zip")

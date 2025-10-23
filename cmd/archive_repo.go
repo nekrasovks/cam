@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-func main() {
+func archive() {
 	if len(os.Args) < 3 {
 		fmt.Println("Использование: archive_repo.exe <source_path> <archive_name>")
 		fmt.Println("Пример: archive_repo.exe .\\clone myrepo_backup.zip")

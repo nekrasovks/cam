@@ -15,7 +15,7 @@ type GitLabProject struct {
 	Visibility  string `json:"visibility,omitempty"`
 }
 
-func main() {
+func createGitlab() {
 	if len(os.Args) < 5 {
 		fmt.Println("Использование: create_gitlab.exe <gitlab_url> <token> <project_name> [description]")
 		fmt.Println("Пример: create_gitlab.exe http://localhost:8080 glpat-token123 myproject \"Мой проект\"")
