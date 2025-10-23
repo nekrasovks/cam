@@ -2,13 +2,13 @@ package main
 
 import (
 	"bytes"
+	"crypto/tls"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
-	"io"
 	"log"
-	"mime/multipart"
 	"net/http"
 	"os"
-	"path/filepath"
 )
 
 func migrateArch() {
@@ -32,42 +32,43 @@ func migrateArch() {
 	fmt.Println("✅ Миграция завершена успешно!")
 }
 
+type CreateCommitBody struct {
+	Branch        string `json:"branch"`         //"main",
+	Content       string `json:"content"`        // "some content"
+	CommitMessage string `json:"commit_message"` // "commit_message": "create a new file"
+	Encoding      string `json:"encoding"`
+}
+
 func migrateArchive(gitlabURL, token, projectID, archivePath string) error {
 	// Открываем архив
-	file, err := os.Open(archivePath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	// Создаем multipart форму
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-
-	part, err := writer.CreateFormFile("file", filepath.Base(archivePath))
-	if err != nil {
-		return err
-	}
-
-	_, err = io.Copy(part, file)
-	if err != nil {
-		return err
-	}
-
-	err = writer.Close()
+	fileContent, err := os.ReadFile(archivePath)
 	if err != nil {
 		return err
 	}
 
 	// Отправляем в GitLab
-	url := fmt.Sprintf("%s/api/v4/projects/%s/import", gitlabURL, projectID)
-	req, err := http.NewRequest("POST", url, body)
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	url := fmt.Sprintf("%s/api/v4/projects/%s/repository/files/%s", gitlabURL, projectID, archivePath)
+
+	body := CreateCommitBody{
+		Branch:        "main",
+		CommitMessage: "copy from git",
+		Content:       base64.StdEncoding.EncodeToString(fileContent),
+		Encoding:      "base64",
+	}
+
+	rawBody, err := json.Marshal(body)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewReader(rawBody))
 	if err != nil {
 		return err
 	}
 
 	req.Header.Set("PRIVATE-TOKEN", token)
-	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -75,6 +76,11 @@ func migrateArchive(gitlabURL, token, projectID, archivePath string) error {
 		return err
 	}
 	defer resp.Body.Close()
+
+	var result map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return err
+	}
 
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusAccepted {
 		return fmt.Errorf("GitLab API вернул ошибку: %s", resp.Status)

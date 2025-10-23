@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -41,10 +42,12 @@ func createGitlab() {
 }
 
 func createGitLabProject(gitlabURL, token, name, description string) (int, error) {
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+
 	project := GitLabProject{
 		Name:        name,
 		Description: description,
-		Visibility:  "private",
+		Visibility:  "public",
 	}
 
 	jsonData, err := json.Marshal(project)
